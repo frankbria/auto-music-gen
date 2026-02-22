@@ -13,9 +13,10 @@ port = 8001
 [generation]
 # Default generation settings
 audio_format = "mp3"
-batch_size = 2
+batch_size = 1          # Keep at 1 for GPUs with <12GB VRAM
 inference_steps = 8
 guidance_scale = 7.0
+audio_duration = 120    # Seconds (120 = 2 min). Longer needs more VRAM.
 
 [output]
 # Where to save generated audio files

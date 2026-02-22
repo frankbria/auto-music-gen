@@ -181,7 +181,10 @@ def _setup_runpod(config: AppConfig) -> tuple:
 
 def _generation_wizard(client, config: AppConfig) -> str:
     """Run one generation cycle. Returns 'quit', 'new', or 'again'."""
+    from auto_music_gen.gpu import detect_gpu
+
     output_mgr = OutputManager(config.output.output_dir)
+    gpu_info = detect_gpu()
 
     # Step 1: Music description
     console.print("\n[bold cyan]Step 1: Music Description[/bold cyan]")
@@ -202,7 +205,7 @@ def _generation_wizard(client, config: AppConfig) -> str:
 
     # Step 4: Settings
     console.print("\n[bold cyan]Step 4: Settings[/bold cyan]")
-    settings = get_settings(config.generation)
+    settings = get_settings(config.generation, gpu_info=gpu_info)
 
     # Build request
     request = GenerationRequest(

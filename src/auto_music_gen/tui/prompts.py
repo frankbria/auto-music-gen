@@ -64,39 +64,67 @@ def get_lyrics() -> str:
     return "[Instrumental]"
 
 
-def get_settings(defaults: GenerationDefaults) -> dict:
+def get_settings(defaults: GenerationDefaults, gpu_info: object | None = None) -> dict:
     """Show current generation defaults and allow customization.
 
     Args:
         defaults: The current GenerationDefaults instance.
+        gpu_info: Optional GpuInfo from gpu.detect_gpu().
 
     Returns:
-        Dict of settings (matching GenerationDefaults fields).
+        Dict of settings (matching GenerationRequest fields).
     """
+    # Show GPU info if available
+    if gpu_info is not None:
+        console.print(
+            f"[dim]GPU: {gpu_info.name} "
+            f"({gpu_info.vram_total_mb}MB total, "
+            f"{gpu_info.vram_free_mb}MB free)[/dim]"
+        )
+
+    duration = getattr(defaults, "audio_duration", 120)
+
     table = Table(title="Generation Settings")
     table.add_column("Setting", style="bold")
     table.add_column("Current Value", style="green")
 
-    table.add_row("Audio Format", defaults.audio_format)
+    table.add_row("Duration", f"{duration}s")
     table.add_row("Batch Size", str(defaults.batch_size))
+    table.add_row("Audio Format", defaults.audio_format)
     table.add_row("Inference Steps", str(defaults.inference_steps))
     table.add_row("Guidance Scale", str(defaults.guidance_scale))
 
     console.print(table)
 
+    # VRAM warning for defaults
+    _show_vram_warning(duration, defaults.batch_size, gpu_info)
+
     if not Confirm.ask("Customize settings?", default=False):
         return {
+            "audio_duration": float(duration),
             "audio_format": defaults.audio_format,
             "batch_size": defaults.batch_size,
             "inference_steps": defaults.inference_steps,
             "guidance_scale": defaults.guidance_scale,
         }
 
-    audio_format = Prompt.ask("Audio format", default=defaults.audio_format, choices=["mp3", "wav"])
+    duration = IntPrompt.ask("Duration in seconds (10-600)", default=duration)
+    duration = max(10, min(600, duration))
     batch_size = IntPrompt.ask("Batch size (1-8)", default=defaults.batch_size)
     batch_size = max(1, min(8, batch_size))
+
+    # VRAM warning for custom settings
+    _show_vram_warning(duration, batch_size, gpu_info)
+
+    audio_format = Prompt.ask(
+        "Audio format",
+        default=defaults.audio_format,
+        choices=["mp3", "wav", "flac"],
+    )
     inference_steps = IntPrompt.ask("Inference steps", default=defaults.inference_steps)
-    guidance_scale_str = Prompt.ask("Guidance scale", default=str(defaults.guidance_scale))
+    guidance_scale_str = Prompt.ask(
+        "Guidance scale", default=str(defaults.guidance_scale)
+    )
 
     try:
         guidance_scale = float(guidance_scale_str)
@@ -104,11 +132,23 @@ def get_settings(defaults: GenerationDefaults) -> dict:
         guidance_scale = defaults.guidance_scale
 
     return {
+        "audio_duration": float(duration),
         "audio_format": audio_format,
         "batch_size": batch_size,
         "inference_steps": inference_steps,
         "guidance_scale": guidance_scale,
     }
+
+
+def _show_vram_warning(
+    duration: float, batch_size: int, gpu_info: object | None
+) -> None:
+    """Show a VRAM warning if the job looks too heavy for the GPU."""
+    from auto_music_gen.gpu import check_vram_fit
+
+    fits, message = check_vram_fit(duration, batch_size, gpu_info)
+    if not fits:
+        console.print(f"\n[bold yellow]VRAM Warning:[/bold yellow] [yellow]{message}[/yellow]")
 
 
 def get_execution_mode() -> str:

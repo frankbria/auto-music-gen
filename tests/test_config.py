@@ -12,7 +12,8 @@ class TestAppConfigDefaults:
         config = AppConfig()
         assert config.server.base_url == "http://127.0.0.1:8001"
         assert config.server.api_key == ""
-        assert config.generation.batch_size == 2
+        assert config.generation.batch_size == 1
+        assert config.generation.audio_duration == 120
         assert config.generation.audio_format == "mp3"
         assert config.output.output_dir == "output"
         assert config.runpod.auto_destroy is True

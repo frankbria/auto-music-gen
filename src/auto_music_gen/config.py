@@ -32,9 +32,10 @@ class AceStepConfig(BaseModel):
 
 class GenerationDefaults(BaseModel):
     audio_format: str = "mp3"
-    batch_size: int = 2
+    batch_size: int = 1
     inference_steps: int = 8
     guidance_scale: float = 7.0
+    audio_duration: int = 120
 
 
 class OutputConfig(BaseModel):
