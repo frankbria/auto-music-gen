@@ -1,0 +1,34 @@
+[server]
+# Base URL of the ACE-Step API server
+base_url = "http://127.0.0.1:8001"
+# Optional API key for authentication
+api_key = ""
+
+[acestep]
+# Path to ACE-Step-1.5 installation (for auto-launching server)
+install_dir = ""
+# Port for local server
+port = 8001
+
+[generation]
+# Default generation settings
+audio_format = "mp3"
+batch_size = 2
+inference_steps = 8
+guidance_scale = 7.0
+
+[output]
+# Where to save generated audio files
+output_dir = "output"
+
+[runpod]
+# RunPod API key (or set RUNPOD_API_KEY env var)
+api_key = ""
+# GPU type for RunPod instances
+gpu_type = "NVIDIA RTX 4090"
+# Pre-configured RunPod template with ACE-Step
+template_id = ""
+# Optional: persistent volume for model weights
+volume_id = ""
+# Tear down pod after generation
+auto_destroy = true
