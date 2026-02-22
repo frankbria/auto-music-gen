@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import readline  # noqa: F401 -- enables arrow-key editing in input()
 from pathlib import Path
 from typing import TYPE_CHECKING
 
