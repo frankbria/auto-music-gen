@@ -72,10 +72,11 @@ def _setup_local(config: AppConfig) -> tuple:
     if not client.health_check():
         console.print(f"\n[yellow]ACE-Step server not detected at {base_url}[/yellow]")
 
-        acestep_dir = config.acestep.install_dir
+        acestep_dir = _resolve_acestep_dir(config.acestep.install_dir)
+
         if acestep_dir and confirm_action("Launch ACE-Step server now?"):
             launcher = ServerLauncher(
-                acestep_dir=Path(acestep_dir), port=config.acestep.port
+                acestep_dir=acestep_dir, port=config.acestep.port
             )
             launcher.launch()
 
@@ -89,11 +90,42 @@ def _setup_local(config: AppConfig) -> tuple:
             show_success("Server ready!")
         elif not acestep_dir:
             console.print(
-                "[dim]Set acestep.install_dir in config.toml to enable auto-launch.[/dim]"
+                "[dim]Could not find ACE-Step installation.[/dim]"
             )
-            console.print("[dim]Or start manually: cd <acestep-dir> && uv run acestep-api[/dim]")
+            console.print(
+                "[dim]Set acestep.install_dir in config.toml or "
+                "ACESTEP_INSTALL_DIR env var.[/dim]"
+            )
 
     return client, launcher, base_url
+
+
+# Common locations to search for ACE-Step installation
+_ACESTEP_SEARCH_PATHS = [
+    Path.home() / "projects" / "ACE-Step-1.5",
+    Path.home() / "ACE-Step-1.5",
+    Path.cwd().parent / "ACE-Step-1.5",
+    Path.cwd() / "ACE-Step-1.5",
+]
+
+
+def _resolve_acestep_dir(configured: str) -> Path | None:
+    """Find the ACE-Step installation directory.
+
+    Resolution order:
+    1. Explicit config value (acestep.install_dir or ACESTEP_INSTALL_DIR)
+    2. Auto-detect from common locations
+    """
+    if configured:
+        p = Path(configured).expanduser()
+        if p.is_dir():
+            return p
+
+    for candidate in _ACESTEP_SEARCH_PATHS:
+        if candidate.is_dir() and (candidate / "pyproject.toml").exists():
+            return candidate
+
+    return None
 
 
 def _setup_runpod(config: AppConfig) -> tuple:
