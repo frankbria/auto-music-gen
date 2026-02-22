@@ -22,8 +22,9 @@ htmlcov/
 # Output
 output/
 
-# Config with secrets
+# Config and secrets
 config.toml
+.env
 
 # OS
 .DS_Store

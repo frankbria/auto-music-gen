@@ -1,10 +1,11 @@
 """Tests for application configuration."""
 
+import os
 from pathlib import Path
 
 import pytest
 
-from auto_music_gen.config import AppConfig, load_config
+from auto_music_gen.config import AppConfig, _load_dotenv, load_config
 
 
 class TestAppConfigDefaults:
@@ -52,3 +53,42 @@ class TestLoadConfig:
 
         config = load_config(cfg_file)
         assert config.server.api_key == "env-key"
+
+
+class TestDotEnv:
+    def test_loads_env_file(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+        env_file = tmp_path / ".env"
+        env_file.write_text('RUNPOD_API_KEY=rp-from-dotenv\nACESTEP_API_KEY="key-quoted"\n')
+
+        monkeypatch.delenv("RUNPOD_API_KEY", raising=False)
+        monkeypatch.delenv("ACESTEP_API_KEY", raising=False)
+        monkeypatch.chdir(tmp_path)
+
+        config = load_config(tmp_path / "nonexistent.toml")
+        assert config.runpod.api_key == "rp-from-dotenv"
+        assert config.server.api_key == "key-quoted"
+
+    def test_existing_env_not_overwritten(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+        env_file = tmp_path / ".env"
+        env_file.write_text("RUNPOD_API_KEY=from-dotenv\n")
+
+        monkeypatch.setenv("RUNPOD_API_KEY", "already-set")
+        monkeypatch.chdir(tmp_path)
+
+        config = load_config(tmp_path / "nonexistent.toml")
+        assert config.runpod.api_key == "already-set"
+
+    def test_ignores_comments_and_blanks(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+        env_file = tmp_path / ".env"
+        env_file.write_text("# comment\n\nRUNPOD_API_KEY=valid-key\n  \n")
+
+        monkeypatch.delenv("RUNPOD_API_KEY", raising=False)
+        monkeypatch.chdir(tmp_path)
+
+        _load_dotenv()
+        assert os.environ.get("RUNPOD_API_KEY") == "valid-key"
+
+    def test_no_env_file_is_fine(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+        monkeypatch.chdir(tmp_path)
+        # Should not raise
+        _load_dotenv()

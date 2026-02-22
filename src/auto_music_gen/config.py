@@ -63,12 +63,19 @@ class AppConfig(BaseModel):
 def load_config(path: Optional[Path] = None) -> AppConfig:
     """Load config from TOML file, falling back to defaults.
 
-    Resolution order:
+    Resolution order for secrets (env vars):
+    1. .env file in current directory (loaded first)
+    2. Explicit environment variables (override .env)
+    3. config.toml values (lowest priority for secrets)
+
+    Resolution order for config file:
     1. Explicit path argument
     2. config.toml in current directory
     3. ~/.config/auto-music-gen/config.toml
     4. All defaults
     """
+    _load_dotenv()
+
     if path and path.exists():
         return _parse_toml(path)
 
@@ -77,6 +84,30 @@ def load_config(path: Optional[Path] = None) -> AppConfig:
             return _parse_toml(candidate)
 
     return _apply_env_overrides(AppConfig())
+
+
+def _load_dotenv() -> None:
+    """Load .env file from current directory if it exists.
+
+    We parse it manually (KEY=VALUE lines) to avoid adding a dependency.
+    Existing environment variables are NOT overwritten.
+    """
+    env_path = Path(".env")
+    if not env_path.exists():
+        return
+
+    for line in env_path.read_text().splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip()
+        value = value.strip().strip("\"'")
+        # Don't overwrite existing env vars
+        if key not in os.environ:
+            os.environ[key] = value
 
 
 def _parse_toml(path: Path) -> AppConfig:
