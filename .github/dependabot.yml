@@ -10,3 +10,7 @@ updates:
     open-pull-requests-limit: 0
     cooldown:
       default-days: 14
+    groups:
+      security-updates:
+        applies-to: security-updates
+        patterns: ["*"]
